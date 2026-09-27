@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EXP-001B Run Result",
+  "type": "object",
+  "required": ["artifact_type", "experiment", "run_id", "profile", "start_timestamp", "end_timestamp", "status", "phases", "timeseries", "limitations"],
+  "properties": {
+    "artifact_type": {"const": "exp001b_run_result"},
+    "experiment": {"const": "EXP-001B"},
+    "run_id": {"type": "string", "minLength": 1},
+    "profile": {"enum": ["sustained", "burst", "extended"]},
+    "start_timestamp": {"type": "string"},
+    "end_timestamp": {"type": "string"},
+    "status": {"enum": ["PASS", "FAIL"]},
+    "error_message": {"type": ["string", "null"]},
+    "phases": {"type": "array", "items": {"type": "object"}},
+    "timeseries": {"type": "array", "items": {"type": "object"}},
+    "observations": {"type": "object"},
+    "interpretation": {"type": "object"},
+    "limitations": {"type": "array", "items": {"type": "string"}}
+  }
+}

@@ -13,7 +13,7 @@ ENVIRONMENT ?= local
 COLLECTOR_CONFIG := collector/collector.generated.yaml
 ARTIFACT_ROOT := artifacts
 
-.PHONY: start stop status generate logs clean test render-config validate-collector smoke measure validate-local experiment-001a experiment-001a-report
+.PHONY: start stop status generate logs clean test render-config validate-collector smoke measure validate-local experiment-001a experiment-001a-report experiment-001b experiment-001b-report
 
 start: render-config
 	mkdir -p $(ARTIFACT_ROOT)/collector $(ARTIFACT_ROOT)/measurements $(ARTIFACT_ROOT)/workload
@@ -68,6 +68,12 @@ experiment-001a:
 
 experiment-001a-report:
 	./experiments/exp-001a/analyze-results.py report
+
+experiment-001b:
+	PROFILE=$(PROFILE) RATE=$(RATE) DURATION=$(DURATION) BASELINE_RATE=$(BASELINE_RATE) BURST_RATE=$(BURST_RATE) BURST_DURATION=$(BURST_DURATION) RECOVERY_RATE=$(RECOVERY_RATE) RECOVERY_DURATION=$(RECOVERY_DURATION) SAMPLE_INTERVAL=$(SAMPLE_INTERVAL) RUN_ID=$(RUN_ID) bash ./experiments/exp-001b/run-pressure.sh
+
+experiment-001b-report:
+	$(PYTHON) ./experiments/exp-001b/analyze-results.py report --results-dir ./experiments/exp-001b/results --output ./experiments/exp-001b/results/latest-report.md
 
 validate-local: test render-config
 	$(COMPOSE) config
