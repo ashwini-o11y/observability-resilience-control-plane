@@ -1,4 +1,5 @@
 import yaml
+from pathlib import Path
 
 from baseline_lab.render_collector_config import build_config_text
 
@@ -27,3 +28,12 @@ def test_optional_exporters_are_added_without_inlining_secrets() -> None:
         "otlphttp/dynatrace",
         "splunk_hec",
     ]
+
+
+def test_committed_generated_collector_config_matches_renderer() -> None:
+    generated_path = Path("collector/collector.generated.yaml")
+
+    assert generated_path.read_text(encoding="utf-8") == build_config_text(
+        enable_dynatrace=False,
+        enable_splunk=False,
+    )

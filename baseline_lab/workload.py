@@ -287,7 +287,7 @@ def _run_window(
         sequence_number += 1
 
     remaining = producer.flush(timeout=max(10, math.ceil(current_rate / 500)))
-    failed = max(0, enqueued - acknowledged)
+    failed = max(enqueued - acknowledged, failed_callbacks + remaining)
     unresolved = max(0, failed - failed_callbacks)
     if remaining or unresolved:
         LOGGER.error(

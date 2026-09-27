@@ -48,7 +48,6 @@ services:
       context: .
       dockerfile: docker/collector/Dockerfile
     container_name: orion-baseline-collector
-    user: "0:0"
     environment:
       ENABLE_DYNATRACE: ${ENABLE_DYNATRACE:-false}
       DYNATRACE_OTLP_ENDPOINT: ${DYNATRACE_OTLP_ENDPOINT:-}

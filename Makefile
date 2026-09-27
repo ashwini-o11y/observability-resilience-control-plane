@@ -16,6 +16,7 @@ ARTIFACT_ROOT := artifacts
 
 start: render-config
 	mkdir -p $(ARTIFACT_ROOT)/collector $(ARTIFACT_ROOT)/measurements $(ARTIFACT_ROOT)/workload
+	chmod 0777 $(ARTIFACT_ROOT)/collector
 	$(COMPOSE) up -d kafka kafka-init otel-collector
 	./scripts/wait-for-baseline.sh
 
@@ -43,6 +44,7 @@ clean:
 	$(COMPOSE) down -v --remove-orphans
 	rm -rf $(ARTIFACT_ROOT)
 	mkdir -p $(ARTIFACT_ROOT)/collector $(ARTIFACT_ROOT)/measurements $(ARTIFACT_ROOT)/workload
+	chmod 0777 $(ARTIFACT_ROOT)/collector
 
 test:
 	$(PYTHON) -m pytest
