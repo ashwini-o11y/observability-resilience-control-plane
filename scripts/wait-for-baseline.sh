@@ -20,12 +20,19 @@ wait_for_container() {
       continue
     fi
 
-    local status
+    local has_healthcheck status
+    has_healthcheck="$(docker inspect --format '{{if .State.Health}}true{{else}}false{{end}}' "${container_id}" 2>/dev/null || true)"
     status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "${container_id}" 2>/dev/null || true)"
     case "${status}" in
-      healthy|running)
+      healthy)
         echo "${service} is ${status}"
         return 0
+        ;;
+      running)
+        if [[ "${has_healthcheck}" == "false" ]]; then
+          echo "${service} is ${status}"
+          return 0
+        fi
         ;;
       unhealthy|exited|dead)
         echo "ERROR: ${service} entered status ${status}" >&2

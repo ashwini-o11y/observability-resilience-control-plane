@@ -64,7 +64,7 @@ wait_for_pipeline_accounting() {
     local file_delta=$((file_after - file_before))
 
     if (( receiver_delta >= expected_records && debug_delta >= expected_records && file_delta >= expected_records )) \
-      && grep -q "${run_id}" artifacts/collector/exported-logs.jsonl 2>/dev/null; then
+      && grep -Fq "${run_id}" artifacts/collector/exported-logs.jsonl 2>/dev/null; then
       return 0
     fi
 
@@ -87,22 +87,29 @@ printf '%s\n' "${run_output}" > artifacts/workload/latest-generate.log
 summary_json="$(printf '%s\n' "${run_output}" | tail -n 1)"
 printf '%s\n' "${summary_json}" > artifacts/workload/latest-summary.json
 
-read -r run_id target_events acknowledged_events failed_events achieved_rate elapsed_seconds < <(
+mapfile -t summary_fields < <(
   python3 - <<'PY' "${summary_json}"
 import json
 import sys
 
 summary = json.loads(sys.argv[1])
-print(
-    summary["run_id"],
-    summary["target_events"],
-    summary["acknowledged_events"],
-    summary["failed_events"],
-    summary["achieved_rate"],
-    summary["elapsed_seconds"],
-)
+for key in (
+    "run_id",
+    "target_events",
+    "acknowledged_events",
+    "failed_events",
+    "achieved_rate",
+    "elapsed_seconds",
+):
+    print(summary[key])
 PY
 )
+run_id="${summary_fields[0]}"
+target_events="${summary_fields[1]}"
+acknowledged_events="${summary_fields[2]}"
+failed_events="${summary_fields[3]}"
+achieved_rate="${summary_fields[4]}"
+elapsed_seconds="${summary_fields[5]}"
 
 if ! wait_for_pipeline_accounting "${run_id}" "${acknowledged_events}" "${before_receiver}" "${before_debug}" "${before_file}"; then
   echo "ERROR: collector/file exporter did not observe run ${run_id} within ${MEASURE_TIMEOUT}s" >&2
