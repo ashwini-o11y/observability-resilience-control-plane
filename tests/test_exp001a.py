@@ -1,0 +1,246 @@
+import json
+from pathlib import Path
+
+from baseline_lab.cli import build_parser
+
+from baseline_lab.exp001a import ResultBuildInput, build_result, collect_metric_snapshot, load_result_files, render_report
+
+
+def test_workload_cli_accepts_operator_run_id() -> None:
+    args = build_parser().parse_args(["--run-id", "exp001a-100rps-001"])
+
+    assert args.run_id == "exp001a-100rps-001"
+
+
+def test_collect_metric_snapshot_extracts_known_metrics_and_limitations() -> None:
+    snapshot = collect_metric_snapshot(
+        """
+        # HELP otelcol_exporter_send_failed_log_records Number of log records in failed attempts to send to destination.
+        otelcol_exporter_send_failed_log_records{exporter="debug"} 0
+        otelcol_exporter_send_failed_log_records{exporter="file"} 0
+        otelcol_exporter_sent_log_records{exporter="debug"} 30
+        otelcol_exporter_sent_log_records{exporter="file"} 30
+        otelcol_process_cpu_seconds{} 0.24
+        otelcol_process_memory_rss{} 172011520
+        otelcol_process_runtime_total_sys_memory_bytes{} 65164552
+        otelcol_processor_batch_batch_send_size_count{processor="batch"} 3
+        otelcol_processor_batch_batch_send_size_sum{processor="batch"} 30
+        otelcol_processor_batch_metadata_cardinality{processor="batch"} 1
+        otelcol_processor_batch_timeout_trigger_send{processor="batch"} 3
+        otelcol_receiver_accepted_log_records{receiver="kafka"} 30
+        """,
+        collected_at="2026-09-27T11:00:00Z",
+    )
+
+    assert snapshot["otel"]["receiver"]["accepted_records_total"] == 30
+    assert snapshot["otel"]["exporter"]["sent_records_total"] == {"debug": 30, "file": 30}
+    assert snapshot["system"]["collector_cpu_seconds_total"] == 0.24
+    assert snapshot["otel"]["queue"] == {
+        "size": {"debug": None, "file": None},
+        "capacity": {"debug": None, "file": None},
+    }
+    assert snapshot["limitations"] == [
+        "Collector queue pressure metrics were not exposed by the baseline collector configuration during this scrape."
+    ]
+
+
+def test_build_result_and_render_report_use_available_rates_only() -> None:
+    measurement = {
+        "accounting_note": "window deltas only",
+        "kafka_consumer_current_offset_delta": 10,
+        "kafka_consumer_lag_total": 0,
+        "kafka_log_end_offset_delta": 10,
+        "otel_exporter_debug_sent_delta": 10,
+        "otel_exporter_file_sent_delta": 10,
+        "otel_receiver_accepted_delta": 10,
+        "workload_achieved_rate": 9.9,
+        "workload_acknowledged_records": 10,
+        "workload_elapsed_seconds": 1.01,
+        "workload_failed_records": 0,
+        "workload_target_records": 10,
+    }
+    before_snapshot = {
+        "otel": {
+            "batch": {
+                "metadata_cardinality": 1,
+                "send_size_count_total": 1,
+                "send_size_sum_total": 10,
+                "timeout_trigger_send_total": 1,
+            },
+            "exporter": {"failed_records_total": {"debug": 0, "file": 0}},
+            "queue": {"size": None, "capacity": None},
+        },
+        "system": {"collector_cpu_seconds_total": 1.0},
+        "limitations": ["queue unavailable"],
+    }
+    after_snapshot = {
+        "otel": {
+            "batch": {
+                "metadata_cardinality": 1,
+                "send_size_count_total": 2,
+                "send_size_sum_total": 20,
+                "timeout_trigger_send_total": 2,
+            },
+            "exporter": {"failed_records_total": {"debug": 0, "file": 0}},
+            "queue": {"size": None, "capacity": None},
+        },
+        "system": {
+            "collector_cpu_seconds_total": 1.5,
+            "collector_memory_rss_bytes": 200_000_000,
+            "collector_runtime_heap_alloc_bytes": 10_000_000,
+            "collector_runtime_total_sys_memory_bytes": 60_000_000,
+            "collector_uptime_seconds": 100.0,
+        },
+        "limitations": ["queue unavailable"],
+    }
+    result = build_result(
+        ResultBuildInput(
+            experiment="EXP-001A",
+            run_id="exp001a-10rps-001",
+            rate=10,
+            duration_seconds=1,
+            start_timestamp="2026-09-27T11:00:00Z",
+            end_timestamp="2026-09-27T11:00:01Z",
+            environment={"git_commit_sha": "abc123"},
+            measurement=measurement,
+            before_snapshot=before_snapshot,
+            after_snapshot=after_snapshot,
+            status="PASS",
+        )
+    )
+
+    assert result["artifact_type"] == "exp001a_run_result"
+    assert result["otel"]["batch"]["average_batch_size"] == 10
+    assert result["system"]["collector_cpu_seconds_delta"] == 0.5
+    assert result["limitations"] == ["queue unavailable", "window deltas only"]
+
+    report = render_report([result])
+
+    assert "| 10/s | exp001a-10rps-001 | PASS |" in report
+    assert "| 100/s | missing |" in report
+    assert "Observed environment behaviour" in report
+    assert "not as a universal system capacity claim" in report
+
+
+def test_render_report_uses_latest_timestamp_for_same_rate() -> None:
+    older_result = {
+        "artifact_type": "exp001a_run_result",
+        "experiment": "EXP-001A",
+        "run_id": "older",
+        "rate": 10,
+        "start_timestamp": "2026-09-27T11:00:00Z",
+        "status": "PASS",
+        "workload": {"acknowledged_records": 10, "target_records": 10, "achieved_rate": 9.8},
+        "kafka": {"consumer_lag": 0},
+        "otel": {"receiver": {"accepted_records": 10}, "exporter": {"failed_records": {"debug": 0, "file": 0}}},
+        "system": {"collector_memory_rss_bytes": 100_000_000},
+    }
+    newer_result = {
+        **older_result,
+        "run_id": "newer",
+        "start_timestamp": "2026-09-27T11:05:00+00:00",
+    }
+
+    report = render_report([newer_result, older_result])
+
+    assert "| 10/s | newer | PASS |" in report
+    assert "| 10/s | older | PASS |" not in report
+
+
+def test_render_report_falls_back_to_path_order_for_invalid_timestamps() -> None:
+    first_result = {
+        "artifact_type": "exp001a_run_result",
+        "experiment": "EXP-001A",
+        "run_id": "first",
+        "rate": 10,
+        "start_timestamp": "not-a-timestamp",
+        "_path": "a.json",
+        "status": "PASS",
+        "workload": {"acknowledged_records": 10, "target_records": 10, "achieved_rate": 9.8},
+        "kafka": {"consumer_lag": 0},
+        "otel": {"receiver": {"accepted_records": 10}, "exporter": {"failed_records": {"debug": 0, "file": 0}}},
+        "system": {"collector_memory_rss_bytes": 100_000_000},
+    }
+    second_result = {
+        **first_result,
+        "run_id": "second",
+        "_path": "b.json",
+    }
+
+    report = render_report([second_result, first_result])
+
+    assert "| 10/s | second | PASS |" in report
+    assert "| 10/s | first | PASS |" not in report
+
+
+def test_render_report_uses_run_id_as_tiebreaker_for_equal_timestamps() -> None:
+    first_result = {
+        "artifact_type": "exp001a_run_result",
+        "experiment": "EXP-001A",
+        "run_id": "exp001a-10rps-001",
+        "rate": 10,
+        "start_timestamp": "2026-09-27T11:00:00Z",
+        "status": "PASS",
+        "workload": {"acknowledged_records": 10, "target_records": 10, "achieved_rate": 9.8},
+        "kafka": {"consumer_lag": 0},
+        "otel": {"receiver": {"accepted_records": 10}, "exporter": {"failed_records": {"debug": 0, "file": 0}}},
+        "system": {"collector_memory_rss_bytes": 100_000_000},
+    }
+    second_result = {
+        **first_result,
+        "run_id": "exp001a-10rps-002",
+    }
+
+    report = render_report([second_result, first_result])
+
+    assert "| 10/s | exp001a-10rps-002 | PASS |" in report
+    assert "| 10/s | exp001a-10rps-001 | PASS |" not in report
+
+
+def test_render_report_prefers_valid_timestamp_over_invalid_timestamp() -> None:
+    valid_result = {
+        "artifact_type": "exp001a_run_result",
+        "experiment": "EXP-001A",
+        "run_id": "valid",
+        "rate": 10,
+        "start_timestamp": "2026-09-27T11:00:00Z",
+        "status": "PASS",
+        "workload": {"acknowledged_records": 10, "target_records": 10, "achieved_rate": 9.8},
+        "kafka": {"consumer_lag": 0},
+        "otel": {"receiver": {"accepted_records": 10}, "exporter": {"failed_records": {"debug": 0, "file": 0}}},
+        "system": {"collector_memory_rss_bytes": 100_000_000},
+    }
+    invalid_result = {
+        **valid_result,
+        "run_id": "invalid",
+        "start_timestamp": "not-a-timestamp",
+        "_path": "z.json",
+    }
+
+    report = render_report([invalid_result, valid_result])
+
+    assert "| 10/s | valid | PASS |" in report
+    assert "| 10/s | invalid | PASS |" not in report
+
+
+def test_load_result_files_only_reads_results_directory_json(tmp_path) -> None:
+    results_dir = tmp_path / "results"
+    results_dir.mkdir()
+    (results_dir / "exp001a-10rps-001.json").write_text(
+        json.dumps(
+            {
+                "artifact_type": "exp001a_run_result",
+                "experiment": "EXP-001A",
+                "run_id": "exp001a-10rps-001",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "result-schema.json").write_text(
+        json.dumps({"experiment": "EXP-001A", "run_id": "schema"}),
+        encoding="utf-8",
+    )
+
+    results = load_result_files(Path(results_dir))
+
+    assert [result["run_id"] for result in results] == ["exp001a-10rps-001"]

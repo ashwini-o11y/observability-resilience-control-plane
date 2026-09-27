@@ -25,6 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=0,
         help="Seconds spent linearly ramping toward --rate without compensating later overshoot.",
     )
+    parser.add_argument("--run-id", default=None, help="Optional operator-specified workload run identifier.")
     parser.add_argument("--service-name", default=WORKLOAD_SERVICE_NAME)
     parser.add_argument("--service-version", default=WORKLOAD_SERVICE_VERSION)
     parser.add_argument("--environment", default=WORKLOAD_ENVIRONMENT)
@@ -40,6 +41,7 @@ def main() -> int:
         rate=args.rate,
         duration_seconds=args.duration_seconds,
         ramp_up_seconds=args.ramp_up_seconds,
+        run_id=args.run_id,
         service_name=args.service_name,
         service_version=args.service_version,
         environment=args.environment,

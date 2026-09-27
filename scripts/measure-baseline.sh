@@ -10,6 +10,7 @@ CONSUMER_GROUP="${CONSUMER_GROUP:-orion-baseline-collector}"
 RATE="${RATE:-10}"
 DURATION="${DURATION:-2}"
 RAMP_UP="${RAMP_UP:-0}"
+RUN_ID="${RUN_ID:-}"
 MEASURE_TIMEOUT="${MEASURE_TIMEOUT:-90}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-artifacts/measurements}"
 
@@ -82,7 +83,7 @@ before_receiver="$(metric_sum '^otelcol_receiver_accepted_log_records\\{receiver
 before_debug="$(metric_sum '^otelcol_exporter_sent_log_records\\{exporter=\"debug\"')"
 before_file="$(metric_sum '^otelcol_exporter_sent_log_records\\{exporter=\"file\"')"
 
-run_output="$(make generate RATE="${RATE}" DURATION="${DURATION}" RAMP_UP="${RAMP_UP}" 2>&1)"
+run_output="$(make --no-print-directory generate RATE="${RATE}" DURATION="${DURATION}" RAMP_UP="${RAMP_UP}" RUN_ID="${RUN_ID}" 2>&1)"
 printf '%s\n' "${run_output}" > artifacts/workload/latest-generate.log
 summary_json="$(printf '%s\n' "${run_output}" | tail -n 1)"
 printf '%s\n' "${summary_json}" > artifacts/workload/latest-summary.json

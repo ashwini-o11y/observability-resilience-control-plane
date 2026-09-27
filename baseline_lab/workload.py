@@ -77,6 +77,7 @@ class WorkloadConfig:
     rate: int = 100
     duration_seconds: int = 30
     ramp_up_seconds: int = 0
+    run_id: str | None = None
     service_name: str = WORKLOAD_SERVICE_NAME
     service_version: str = WORKLOAD_SERVICE_VERSION
     environment: str = WORKLOAD_ENVIRONMENT
@@ -100,6 +101,8 @@ class WorkloadConfig:
             raise ValueError("bootstrap_servers must not be empty")
         if not self.topic.strip():
             raise ValueError("topic must not be empty")
+        if self.run_id is not None and not self.run_id.strip():
+            raise ValueError("run_id must not be empty when provided")
 
 
 @dataclass(frozen=True)
@@ -320,7 +323,7 @@ def run_workload(config: WorkloadConfig) -> WorkloadSummary:
     LAST_RUN_FAILED.set(0)
 
     schedule = build_rate_schedule(config.rate, config.duration_seconds, config.ramp_up_seconds)
-    run_id = datetime.now(tz=UTC).strftime("orion-baseline-%Y%m%d%H%M%S%f")
+    run_id = config.run_id or datetime.now(tz=UTC).strftime("orion-baseline-%Y%m%d%H%M%S%f")
     LOGGER.info(
         "Starting ORION baseline workload run_id=%s topic=%s duration=%ss target_rates=%s",
         run_id,
