@@ -10,13 +10,14 @@ SERVICE_NAME ?= orion-demo-workload
 SERVICE_VERSION ?= 0.1.0
 ENVIRONMENT ?= local
 COLLECTOR_CONFIG := collector/collector.generated.yaml
-ARTIFACT_DIR := artifacts/collector
+ARTIFACT_ROOT := artifacts
 
-.PHONY: start stop status generate logs clean test render-config
+.PHONY: start stop status generate logs clean test render-config validate-collector smoke measure validate-local
 
 start: render-config
-	mkdir -p $(ARTIFACT_DIR)
+	mkdir -p $(ARTIFACT_ROOT)/collector $(ARTIFACT_ROOT)/measurements $(ARTIFACT_ROOT)/workload
 	$(COMPOSE) up -d kafka kafka-init otel-collector
+	./scripts/wait-for-baseline.sh
 
 stop:
 	$(COMPOSE) down --remove-orphans
@@ -40,11 +41,25 @@ logs:
 
 clean:
 	$(COMPOSE) down -v --remove-orphans
-	rm -rf $(ARTIFACT_DIR)
-	mkdir -p $(ARTIFACT_DIR)
+	rm -rf $(ARTIFACT_ROOT)
+	mkdir -p $(ARTIFACT_ROOT)/collector $(ARTIFACT_ROOT)/measurements $(ARTIFACT_ROOT)/workload
 
 test:
 	$(PYTHON) -m pytest
 
 render-config:
 	$(PYTHON) -m baseline_lab.render_collector_config --output $(COLLECTOR_CONFIG)
+
+validate-collector: render-config
+	./scripts/validate-collector-components.sh
+
+smoke:
+	./scripts/smoke-test.sh
+
+measure:
+	RATE=$(RATE) DURATION=$(DURATION) RAMP_UP=$(RAMP_UP) ./scripts/measure-baseline.sh
+
+validate-local: test render-config
+	$(COMPOSE) config
+	./scripts/validate-collector-components.sh
+	./scripts/smoke-test.sh

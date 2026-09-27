@@ -46,6 +46,14 @@ services:
     image: otel/opentelemetry-collector-contrib:0.111.0
     container_name: orion-baseline-collector
     user: "0:0"
+    environment:
+      ENABLE_DYNATRACE: ${ENABLE_DYNATRACE:-false}
+      DYNATRACE_OTLP_ENDPOINT: ${DYNATRACE_OTLP_ENDPOINT:-}
+      DYNATRACE_API_TOKEN: ${DYNATRACE_API_TOKEN:-}
+      ENABLE_SPLUNK: ${ENABLE_SPLUNK:-false}
+      SPLUNK_HEC_ENDPOINT: ${SPLUNK_HEC_ENDPOINT:-}
+      SPLUNK_HEC_TOKEN: ${SPLUNK_HEC_TOKEN:-}
+      SPLUNK_HEC_INDEX: ${SPLUNK_HEC_INDEX:-main}
     depends_on:
       kafka-init:
         condition: service_completed_successfully

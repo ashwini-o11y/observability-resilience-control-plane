@@ -12,3 +12,12 @@ def test_compose_includes_required_baseline_services() -> None:
     assert services["kafka"]["ports"] == ["9094:9094"]
     assert services["otel-collector"]["ports"] == ["13133:13133", "8888:8888"]
     assert services["workload"]["profiles"] == ["generator"]
+    assert {
+        "ENABLE_DYNATRACE",
+        "DYNATRACE_OTLP_ENDPOINT",
+        "DYNATRACE_API_TOKEN",
+        "ENABLE_SPLUNK",
+        "SPLUNK_HEC_ENDPOINT",
+        "SPLUNK_HEC_TOKEN",
+        "SPLUNK_HEC_INDEX",
+    } <= set(services["otel-collector"]["environment"])

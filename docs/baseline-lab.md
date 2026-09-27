@@ -10,6 +10,8 @@ Demo workload → Kafka → OpenTelemetry Collector → backend export interface
 
 The baseline is intentionally conventional and reproducible so later experiments can measure lag, pressure, exporter failure, telemetry loss, and evidence degradation before any ORION intelligence is introduced.
 
+**This is the ORION baseline/control system. ORION resilience and adaptive-control logic is intentionally not implemented yet.**
+
 ## Architecture
 
 - **Workload:** Python generator that publishes OTLP log envelopes to Kafka at a configurable rate.
@@ -34,6 +36,27 @@ cp .env.example .env
 
 The baseline runs without proprietary credentials. Leave Dynatrace/Splunk settings disabled unless you intentionally want to test those exporters.
 
+## Environment variables
+
+The baseline starts without proprietary credentials. Optional backend exports are enabled only when both the feature flag and the required backend-specific variables are set.
+
+### Dynatrace
+
+- `ENABLE_DYNATRACE=true`
+- `DYNATRACE_OTLP_ENDPOINT=https://<tenant>/api/v2/otlp`
+- `DYNATRACE_API_TOKEN=<token>`
+
+These values are rendered into the collector configuration on the host and are also passed explicitly into the collector container environment so `${env:...}` lookups resolve inside the container.
+
+### Splunk
+
+- `ENABLE_SPLUNK=true`
+- `SPLUNK_HEC_ENDPOINT=https://<splunk-hec-endpoint>/services/collector`
+- `SPLUNK_HEC_TOKEN=<token>`
+- `SPLUNK_HEC_INDEX=main`
+
+These values are also passed explicitly into the collector container environment. If `ENABLE_SPLUNK=false`, the baseline continues to start without them.
+
 ## Startup
 
 Start the baseline services:
@@ -45,7 +68,7 @@ make start
 This performs two actions:
 
 1. renders `collector/collector.generated.yaml`
-2. starts Kafka, bootstraps the telemetry topic, and starts the OpenTelemetry Collector
+2. starts Kafka, bootstraps the telemetry topic, starts the OpenTelemetry Collector, and waits for Kafka plus collector health checks to become ready
 
 Check status:
 
@@ -58,6 +81,13 @@ Follow broker and collector logs:
 ```bash
 make logs
 ```
+
+## Health checks and deterministic startup
+
+- Kafka uses a container health check based on `kafka-topics --bootstrap-server kafka:9092 --list`
+- the collector uses the built-in `otelcol-contrib validate --config=...` command for container health plus an HTTP health endpoint on `http://localhost:13133`
+- `make start` and the smoke test both call `scripts/wait-for-baseline.sh` so startup waits on actual readiness instead of fixed sleeps
+- the workload service depends on `kafka-init`, which depends on Kafka health, so the generator does not start before the topic exists
 
 ## Workload generation
 
@@ -112,6 +142,25 @@ Each synthetic OTLP log record includes:
 
 The generator cycles deterministic event types, severities, and criticality labels so repeated runs preserve structure while allowing rate changes.
 
+## End-to-end smoke test
+
+Run the CI-suitable smoke test:
+
+```bash
+make smoke
+```
+
+The smoke test:
+
+1. cleans any previous local baseline state
+2. starts Kafka, topic bootstrap, and the collector
+3. waits for Kafka and collector readiness
+4. generates a small deterministic telemetry run
+5. verifies Kafka log-end offsets increase
+6. verifies the collector receiver/exporter counters increase
+7. verifies the local file exporter contains the run identifier
+8. prints diagnostics on failure and cleans up containers afterward
+
 ## Kafka configuration and inspection
 
 ### Topic
@@ -134,10 +183,17 @@ docker compose exec kafka kafka-topics --bootstrap-server kafka:9092 --describe 
 docker compose exec kafka kafka-consumer-groups --bootstrap-server kafka:9092 --describe --group orion-baseline-collector
 ```
 
+### Inspect Kafka produced records
+
+```bash
+docker compose exec kafka kafka-get-offsets --bootstrap-server kafka:9092 --topic orion.baseline.telemetry.logs.v1
+```
+
 ## Collector configuration and inspection
 
 The collector is rendered into `collector/collector.generated.yaml` and includes:
 
+- exact image/version: `otel/opentelemetry-collector-contrib:0.111.0`
 - Kafka receiver on topic `orion.baseline.telemetry.logs.v1`
 - memory limiter: `limit_mib=256`, `spike_limit_mib=64`, `check_interval=1s`
 - batch processor: `send_batch_size=1024`, `timeout=1s`
@@ -146,6 +202,22 @@ The collector is rendered into `collector/collector.generated.yaml` and includes
 - exporters:
   - always enabled: `debug`, `file`
   - optional: `otlphttp/dynatrace`, `splunk_hec`
+
+### Collector component compatibility
+
+The exact collector image is validated with:
+
+```bash
+make validate-collector
+```
+
+That validation checks:
+
+- required components exist in `otel/opentelemetry-collector-contrib:0.111.0`
+- the baseline config validates against that exact image
+- the optional Dynatrace and Splunk exporter config also validates against that exact image
+
+The baseline does **not** configure an OTLP receiver because that would bypass Kafka and violate the architecture under test.
 
 ### Collector health
 
@@ -228,6 +300,30 @@ This supports:
 
 No adaptive behavior is implemented. Load remains operator-controlled.
 
+## Baseline accounting and measurement
+
+To generate workload and print baseline accounting deltas for the current run:
+
+```bash
+make measure RATE=100 DURATION=30
+```
+
+The measurement command reports:
+
+- workload target records
+- workload acknowledged records
+- workload failed records
+- Kafka log-end offset delta
+- Kafka consumer current-offset delta
+- Kafka consumer lag total
+- collector receiver accepted-record delta
+- collector debug exporter sent-record delta
+- collector file exporter sent-record delta
+
+### Measurement limitation
+
+Kafka offsets and collector metrics are cumulative counters. The measurement command therefore reports **deltas across its own measurement window** rather than pretending to provide a perfect per-message ledger. On a clean stack, those deltas closely approximate the single workload run. On a reused stack, they remain valid window deltas but not globally exact totals.
+
 ## Expected behavior
 
 - `make start` succeeds without Dynatrace or Splunk credentials.
@@ -242,6 +338,7 @@ No adaptive behavior is implemented. Load remains operator-controlled.
 - **Kafka topic is missing:** inspect `docker compose logs kafka-init`.
 - **No collector output:** confirm the workload used topic `orion.baseline.telemetry.logs.v1` and inspect `docker compose logs otel-collector`.
 - **Lag is growing unexpectedly:** inspect `kafka-consumer-groups` output and collector metrics at `:8888/metrics`.
+- **Smoke test fails:** inspect `artifacts/workload/latest-generate.log`, `artifacts/workload/latest-summary.json`, and `artifacts/measurements/latest-measurement.json` before cleanup or rerun `make smoke` for fresh diagnostics.
 - **Optional exporters fail:** confirm credentials/endpoints are set in `.env`; the baseline still functions with local debug/file exporters.
 
 ## Cleanup
@@ -266,6 +363,20 @@ Run the focused automated tests:
 python3 -m pip install -e .[dev]
 make test
 ```
+
+Run the CI-equivalent local validation flow:
+
+```bash
+make validate-local
+```
+
+That runs:
+
+- Python tests
+- collector config rendering
+- Docker Compose validation
+- collector component/config validation against `otel/opentelemetry-collector-contrib:0.111.0`
+- the end-to-end smoke test
 
 ## Intentionally not implemented yet
 

@@ -43,10 +43,11 @@ Quickstart:
 ```bash
 make start
 make generate RATE=100 DURATION=30
+make measure RATE=100 DURATION=30
 make status
 ```
 
-See `docs/baseline-lab.md` for setup, workload generation, Kafka/collector inspection, optional Dynatrace/Splunk configuration, troubleshooting, and cleanup.
+See `docs/baseline-lab.md` for setup, workload generation, accounting/measurement commands, smoke testing, CI-equivalent validation, optional Dynatrace/Splunk configuration, troubleshooting, and cleanup.
 
 ## Planned capability areas
 

@@ -1,0 +1,41 @@
+name: baseline-ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .[dev]
+
+      - name: Run Python tests
+        run: python -m pytest -q
+
+      - name: Render collector config
+        run: python -m baseline_lab.render_collector_config --output collector/collector.generated.yaml
+
+      - name: Validate Docker Compose
+        run: docker compose config
+
+      - name: Validate collector components and config
+        run: ./scripts/validate-collector-components.sh
+
+      - name: Run end-to-end smoke test
+        run: ./scripts/smoke-test.sh
