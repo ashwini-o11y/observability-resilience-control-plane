@@ -17,9 +17,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--bootstrap-servers", default="kafka:9092")
     parser.add_argument("--topic", default=TOPIC_NAME)
-    parser.add_argument("--rate", type=int, default=100)
+    parser.add_argument("--rate", type=int, default=100, help="Steady-state peak events per second target.")
     parser.add_argument("--duration", dest="duration_seconds", type=int, default=30)
-    parser.add_argument("--ramp-up-seconds", type=int, default=0)
+    parser.add_argument(
+        "--ramp-up-seconds",
+        type=int,
+        default=0,
+        help="Seconds spent linearly ramping toward --rate without compensating later overshoot.",
+    )
     parser.add_argument("--service-name", default=WORKLOAD_SERVICE_NAME)
     parser.add_argument("--service-version", default=WORKLOAD_SERVICE_VERSION)
     parser.add_argument("--environment", default=WORKLOAD_ENVIRONMENT)

@@ -147,6 +147,15 @@ def _key_value(key: str, value: AnyValue) -> KeyValue:
 
 
 def build_rate_schedule(rate: int, duration_seconds: int, ramp_up_seconds: int) -> list[int]:
+    """Build a deterministic per-second schedule.
+
+    Contract:
+    - `rate` is the steady-state peak target for each second after ramp-up.
+    - ramp-up intentionally reduces the total planned event count rather than
+      compensating later with an overshoot above `rate`.
+    - the returned schedule sum is therefore the authoritative planned-event
+      count for the run and is what `target_events` reports.
+    """
     if rate <= 0:
         raise ValueError("rate must be greater than zero")
     if duration_seconds <= 0:

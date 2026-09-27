@@ -6,13 +6,16 @@ from baseline_lab.workload import WorkloadConfig, build_log_request, build_rate_
 
 
 def test_build_rate_schedule_with_ramp_up() -> None:
-    assert build_rate_schedule(rate=1000, duration_seconds=5, ramp_up_seconds=2) == [
+    schedule = build_rate_schedule(rate=1000, duration_seconds=5, ramp_up_seconds=2)
+
+    assert schedule == [
         500,
         1000,
         1000,
         1000,
         1000,
     ]
+    assert sum(schedule) == 4500
 
 
 def test_build_rate_schedule_rounds_up_low_rate_ramp() -> None:

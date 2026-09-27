@@ -142,6 +142,10 @@ Each synthetic OTLP log record includes:
 
 The generator cycles deterministic event types, severities, and criticality labels so repeated runs preserve structure while allowing rate changes.
 
+### Ramp-up contract
+
+When `RAMP_UP` is non-zero, `RATE` is treated as the **steady-state peak rate** after ramp-up. The generator does **not** compensate later with an overshoot above `RATE`, so the planned event total for a ramped run is the sum of the generated per-second schedule rather than `RATE * DURATION`.
+
 ## End-to-end smoke test
 
 Run the CI-suitable smoke test:
