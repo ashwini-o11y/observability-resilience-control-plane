@@ -84,7 +84,7 @@ before_file="$(metric_sum '^otelcol_exporter_sent_log_records\\{exporter=\"file\
 
 run_output="$(make generate RATE="${RATE}" DURATION="${DURATION}" RAMP_UP="${RAMP_UP}" 2>&1)"
 printf '%s\n' "${run_output}" > artifacts/workload/latest-generate.log
-summary_json="$(printf '%s\n' "${run_output}" | tail -n 1)"
+summary_json="$(printf '%s\n' "${run_output}" | grep -E '^\{.*\}$' | tail -n 1)"
 printf '%s\n' "${summary_json}" > artifacts/workload/latest-summary.json
 
 mapfile -t summary_fields < <(
