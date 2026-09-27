@@ -27,7 +27,7 @@ share/python-wheels/
 MANIFEST
 
 # PyInstaller
-#   Usually these files are written by a template
+#   Usually this is a template for Python projects
 #   before a build, so as to inject platform-specific data.
 *.manifest
 *.spec
@@ -92,17 +92,16 @@ ipython_config.py
 # Pipfile.lock
 
 # UV
-#   It is recommended to include uv.lock in version control when reproducibility matters.
+#   Similar to pipenv, uv.lock may be checked in for reproducibility.
 # uv.lock
 
 # poetry
-#   It is recommended to include poetry.lock in version control when reproducibility matters.
-# https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+#   Poetry lock files are commonly committed for applications.
 # poetry.lock
 # poetry.toml
 
 # pdm
-#   pdm recommends including project-wide configuration in version control where appropriate.
+#   pdm recommends including pdm.lock where reproducibility matters.
 # pdm.lock
 # pdm.toml
 .pdm-python
@@ -112,7 +111,7 @@ ipython_config.py
 # pixi.lock
 .pixi
 
-# PEP 582; used by e.g. github.com/DavidConnor/pyflow
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
 
 # Celery stuff
@@ -171,12 +170,17 @@ cython_debug/
 
 # PyCharm
 #   JetBrains specific template is maintained in a separate JetBrains.gitignore
-#   .idea/
+#   and can be added to the repository if desired.
+# .idea/
 
 # Abstra
+#   Abstra is an AI-powered framework.
+#   Ignore local credentials and state.
 .abstra/
 
 # Visual Studio Code
+#   Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore
+#   and can be added to the repository if desired.
 # .vscode/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
