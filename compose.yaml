@@ -51,7 +51,7 @@ services:
         condition: service_completed_successfully
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:13133 >/dev/null 2>&1"]
+      test: ["CMD", "/otelcol-contrib", "validate", "--config=/etc/otelcol-contrib/config.yaml"]
       interval: 15s
       timeout: 10s
       retries: 5

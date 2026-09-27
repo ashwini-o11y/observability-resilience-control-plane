@@ -15,6 +15,13 @@ def test_build_rate_schedule_with_ramp_up() -> None:
     ]
 
 
+def test_build_rate_schedule_rounds_up_low_rate_ramp() -> None:
+    schedule = build_rate_schedule(rate=3, duration_seconds=4, ramp_up_seconds=2)
+
+    assert schedule == [2, 3, 3, 3]
+    assert sum(schedule) == 11
+
+
 def test_workload_config_rejects_invalid_ramp_up() -> None:
     config = WorkloadConfig(rate=100, duration_seconds=10, ramp_up_seconds=10)
 

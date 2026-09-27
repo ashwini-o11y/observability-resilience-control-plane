@@ -249,6 +249,7 @@ def _run_window(
     run_id: str,
 ) -> tuple[int, int]:
     sequence_number = start_sequence
+    enqueued = 0
     acknowledged = 0
     failed = 0
 
@@ -279,15 +280,21 @@ def _run_window(
                     on_delivery=delivery_report,
                 )
                 produced = True
+                enqueued += 1
             except BufferError:
                 producer.poll(0.1)
         producer.poll(0)
         sequence_number += 1
 
     remaining = producer.flush(timeout=max(10, math.ceil(current_rate / 500)))
-    if remaining:
-        LOGGER.error("%s messages remained queued after flush timeout", remaining)
-        failed += remaining
+    unresolved = max(0, enqueued - acknowledged - failed)
+    if remaining or unresolved:
+        LOGGER.error(
+            "%s messages remained unresolved after flush (reported queued=%s)",
+            unresolved,
+            remaining,
+        )
+        failed += unresolved
     return acknowledged, failed
 
 
