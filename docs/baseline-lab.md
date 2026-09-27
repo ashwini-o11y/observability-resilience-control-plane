@@ -217,7 +217,7 @@ That validation checks:
 - the baseline config validates against that exact image
 - the optional Dynatrace and Splunk exporter config also validates against that exact image
 
-The baseline does **not** configure an OTLP receiver because that would bypass Kafka and violate the architecture under test.
+The validation script checks that the pinned collector image still contains an `otlp` receiver, but the baseline pipeline does **not** configure or use that receiver because doing so would bypass Kafka and violate the architecture under test.
 
 ### Collector health
 
