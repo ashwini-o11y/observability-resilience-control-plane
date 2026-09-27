@@ -1,0 +1,40 @@
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+receivers:
+  kafka:
+    brokers:
+      - kafka:9092
+    topic: orion.baseline.telemetry.logs.v1
+    group_id: orion-baseline-collector
+    client_id: orion-baseline-kafka-receiver
+    encoding: otlp_proto
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+    spike_limit_mib: 64
+  batch:
+    send_batch_size: 1024
+    timeout: 1s
+
+exporters:
+  debug:
+    verbosity: detailed
+  file:
+    path: /var/lib/otelcol/exported-logs.jsonl
+
+service:
+  extensions: [health_check]
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      address: 0.0.0.0:8888
+  pipelines:
+    logs:
+      receivers: [kafka]
+      processors: [memory_limiter, batch]
+      exporters: [debug, file]

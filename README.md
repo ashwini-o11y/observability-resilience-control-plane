@@ -26,9 +26,27 @@ ORION aims to break that feedback loop by making telemetry-management decisions 
 
 ## Current status
 
-**Phase:** Foundation / Discovery
+**Phase:** Foundation / Discovery progressing into baseline lab implementation
 
-No production control-plane implementation has been started yet. The first objective is to validate the problem, map existing vendor capabilities, define the architecture, and establish measurable baseline experiments before implementing automation.
+No production ORION control-plane implementation has been started yet. The first implementation delivered in this repository is the reproducible baseline experiment environment used to validate the problem, establish measurements, and prepare later resilience experiments before introducing automation.
+
+## Local baseline lab
+
+The repository now includes the reproducible **baseline/control** lab environment for Experiment 001:
+
+```text
+Demo workload → Kafka → OpenTelemetry Collector → backend export interfaces
+```
+
+Quickstart:
+
+```bash
+make start
+make generate RATE=100 DURATION=30
+make status
+```
+
+See `docs/baseline-lab.md` for setup, workload generation, Kafka/collector inspection, optional Dynatrace/Splunk configuration, troubleshooting, and cleanup.
 
 ## Planned capability areas
 
