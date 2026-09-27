@@ -80,7 +80,13 @@ MEASURE_EXIT=$?
 set -e
 
 END_TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-collect_snapshot_with_retry "${END_TIMESTAMP}" "${TMP_DIR}/after.json" 3 || true
+if ! collect_snapshot_with_retry "${END_TIMESTAMP}" "${TMP_DIR}/after.json" 3; then
+  if [[ -n "${ERROR_MESSAGE}" ]]; then
+    ERROR_MESSAGE="${ERROR_MESSAGE} "
+  fi
+  ERROR_MESSAGE="${ERROR_MESSAGE}Failed to collect post-run collector metrics snapshot."
+  STATUS="FAIL"
+fi
 
 if (( MEASURE_EXIT != 0 )); then
   STATUS="FAIL"
@@ -100,12 +106,14 @@ build_args=(
   --end-timestamp "${END_TIMESTAMP}"
   --environment "${TMP_DIR}/environment.json"
   --before-snapshot "${TMP_DIR}/before.json"
-  --after-snapshot "${TMP_DIR}/after.json"
   --status "${STATUS}"
   --output "${RESULT_PATH}"
 )
 if [[ -f "${TMP_DIR}/measurement.json" ]]; then
   build_args+=(--measurement "${TMP_DIR}/measurement.json")
+fi
+if [[ -f "${TMP_DIR}/after.json" ]]; then
+  build_args+=(--after-snapshot "${TMP_DIR}/after.json")
 fi
 if [[ -n "${ERROR_MESSAGE}" ]]; then
   build_args+=(--error-message "${ERROR_MESSAGE}")

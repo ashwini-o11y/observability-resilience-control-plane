@@ -11,11 +11,15 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_RESULTS_DIR = ROOT_DIR / "experiments" / "exp-001a" / "results"
 
 
-def _load_json(path: str | None) -> dict | None:
+def _load_json(path: str | None, *, required: bool = False) -> dict | None:
     if not path:
+        if required:
+            raise FileNotFoundError("A required JSON input path was not provided.")
         return None
     file_path = Path(path)
     if not file_path.exists():
+        if required:
+            raise FileNotFoundError(f"Required JSON input does not exist: {file_path}")
         return None
     return json.loads(file_path.read_text(encoding="utf-8"))
 
@@ -28,7 +32,7 @@ def build_command(args: argparse.Namespace) -> int:
         duration_seconds=args.duration_seconds,
         start_timestamp=args.start_timestamp,
         end_timestamp=args.end_timestamp,
-        environment=_load_json(args.environment) or {},
+        environment=_load_json(args.environment, required=True) or {},
         measurement=_load_json(args.measurement),
         before_snapshot=_load_json(args.before_snapshot),
         after_snapshot=_load_json(args.after_snapshot),
