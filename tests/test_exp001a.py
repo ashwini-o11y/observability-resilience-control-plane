@@ -35,7 +35,10 @@ def test_collect_metric_snapshot_extracts_known_metrics_and_limitations() -> Non
     assert snapshot["otel"]["receiver"]["accepted_records_total"] == 30
     assert snapshot["otel"]["exporter"]["sent_records_total"] == {"debug": 30, "file": 30}
     assert snapshot["system"]["collector_cpu_seconds_total"] == 0.24
-    assert snapshot["otel"]["queue"] == {"size": None, "capacity": None}
+    assert snapshot["otel"]["queue"] == {
+        "size": {"debug": None, "file": None},
+        "capacity": {"debug": None, "file": None},
+    }
     assert snapshot["limitations"] == [
         "Collector queue pressure metrics were not exposed by the baseline collector configuration during this scrape."
     ]
@@ -117,6 +120,31 @@ def test_build_result_and_render_report_use_available_rates_only() -> None:
     assert "| 100/s | missing |" in report
     assert "Observed environment behaviour" in report
     assert "not as a universal system capacity claim" in report
+
+
+def test_render_report_uses_latest_timestamp_for_same_rate() -> None:
+    older_result = {
+        "artifact_type": "exp001a_run_result",
+        "experiment": "EXP-001A",
+        "run_id": "older",
+        "rate": 10,
+        "start_timestamp": "2026-09-27T11:00:00Z",
+        "status": "PASS",
+        "workload": {"acknowledged_records": 10, "target_records": 10, "achieved_rate": 9.8},
+        "kafka": {"consumer_lag": 0},
+        "otel": {"receiver": {"accepted_records": 10}, "exporter": {"failed_records": {"debug": 0, "file": 0}}},
+        "system": {"collector_memory_rss_bytes": 100_000_000},
+    }
+    newer_result = {
+        **older_result,
+        "run_id": "newer",
+        "start_timestamp": "2026-09-27T11:05:00+00:00",
+    }
+
+    report = render_report([newer_result, older_result])
+
+    assert "| 10/s | newer | PASS |" in report
+    assert "| 10/s | older | PASS |" not in report
 
 
 def test_load_result_files_only_reads_results_directory_json(tmp_path) -> None:

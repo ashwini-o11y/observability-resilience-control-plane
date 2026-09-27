@@ -48,8 +48,14 @@
       }
     },
     "queue": {
-      "size": null,
-      "capacity": null
+      "size": {
+        "debug": null,
+        "file": null
+      },
+      "capacity": {
+        "debug": null,
+        "file": null
+      }
     },
     "batch": {
       "timeout_trigger_send_delta": 300,

@@ -69,7 +69,7 @@ COLLECTED_AT="${END_TIMESTAMP}" "${ROOT_DIR}/experiments/exp-001a/collect-metric
 
 if (( MEASURE_EXIT != 0 )); then
   STATUS="FAIL"
-  ERROR_MESSAGE="$(tr '\n' ' ' < "${TMP_DIR}/measurement.stderr" | sed 's/[[:space:]]\\+/ /g')"
+  ERROR_MESSAGE="$(tr '\n' ' ' < "${TMP_DIR}/measurement.stderr" | sed 's/[[:space:]][[:space:]]*/ /g')"
   rm -f "${TMP_DIR}/measurement.json"
 fi
 

@@ -79,12 +79,34 @@ def _metric_delta(before: float | None, after: float | None) -> float | None:
     return after - before
 
 
+def _labelled_metric_values(
+    series: dict[tuple[str, frozenset[tuple[str, str]]], float],
+    metric_name: str,
+    label_name: str,
+    label_values: tuple[str, ...],
+) -> dict[str, float | None]:
+    values = {label_value: None for label_value in label_values}
+    for label_value in label_values:
+        values[label_value] = _sum_metric(series, metric_name, **{label_name: label_value})
+    return values
+
+
 def collect_metric_snapshot(metrics_text: str, *, collected_at: str) -> dict[str, Any]:
     series = parse_prometheus_metrics(metrics_text)
-    queue_size = _sum_metric(series, "otelcol_exporter_queue_size")
-    queue_capacity = _sum_metric(series, "otelcol_exporter_queue_capacity")
+    queue_size = _labelled_metric_values(
+        series,
+        "otelcol_exporter_queue_size",
+        "exporter",
+        ("debug", "file"),
+    )
+    queue_capacity = _labelled_metric_values(
+        series,
+        "otelcol_exporter_queue_capacity",
+        "exporter",
+        ("debug", "file"),
+    )
     limitations: list[str] = []
-    if queue_size is None or queue_capacity is None:
+    if all(value is None for value in queue_size.values()) or all(value is None for value in queue_capacity.values()):
         limitations.append(
             "Collector queue pressure metrics were not exposed by the baseline collector configuration during this scrape."
         )
@@ -187,8 +209,11 @@ def build_result(payload: ResultBuildInput) -> dict[str, Any]:
     if batch_send_size_count_delta not in (None, 0) and batch_send_size_sum_delta is not None:
         average_batch_size = batch_send_size_sum_delta / batch_send_size_count_delta
 
-    limitations = list(before_snapshot.get("limitations", [])) + list(after_snapshot.get("limitations", []))
-    if measurement.get("accounting_note"):
+    limitations: list[str] = []
+    for limitation in list(before_snapshot.get("limitations", [])) + list(after_snapshot.get("limitations", [])):
+        if limitation not in limitations:
+            limitations.append(limitation)
+    if measurement.get("accounting_note") and str(measurement["accounting_note"]) not in limitations:
         limitations.append(str(measurement["accounting_note"]))
 
     return {
@@ -256,7 +281,7 @@ def build_result(payload: ResultBuildInput) -> dict[str, Any]:
         },
         "status": payload.status,
         "error_message": payload.error_message,
-        "limitations": list(dict.fromkeys(limitations)),
+        "limitations": limitations,
     }
 
 
