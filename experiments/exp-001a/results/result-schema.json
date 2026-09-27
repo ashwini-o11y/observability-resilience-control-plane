@@ -1,0 +1,74 @@
+{
+  "experiment": "EXP-001A",
+  "run_id": "exp001a-100rps-001",
+  "rate": 100,
+  "duration_seconds": 300,
+  "start_timestamp": "2026-09-27T00:00:00Z",
+  "end_timestamp": "2026-09-27T00:05:00Z",
+  "git_commit_sha": "0123456789abcdef0123456789abcdef01234567",
+  "environment": {
+    "git_commit_sha": "0123456789abcdef0123456789abcdef01234567",
+    "git_branch": "copilot/exp-001a-establish-telemetry-baseline",
+    "platform": "Linux-x86_64",
+    "python_version": "3.11.9",
+    "docker_compose_version": "2.x",
+    "docker_server_version": "27.x",
+    "collector_image": "orion-baseline-collector:0.111.0",
+    "kafka_image": "confluentinc/cp-kafka:7.7.1",
+    "optional_exporters": {
+      "dynatrace_enabled": "false",
+      "splunk_enabled": "false"
+    }
+  },
+  "workload": {
+    "target_records": 30000,
+    "acknowledged_records": 30000,
+    "failed_records": 0,
+    "achieved_rate": 99.8,
+    "elapsed_seconds": 300.6
+  },
+  "kafka": {
+    "produced_records": 30000,
+    "consumer_offset_delta": 30000,
+    "consumer_lag": 0
+  },
+  "otel": {
+    "receiver": {
+      "accepted_records": 30000
+    },
+    "exporter": {
+      "sent_records": {
+        "debug": 30000,
+        "file": 30000
+      },
+      "failed_records": {
+        "debug": 0,
+        "file": 0
+      }
+    },
+    "queue": {
+      "size": null,
+      "capacity": null
+    },
+    "batch": {
+      "timeout_trigger_send_delta": 300,
+      "send_size_count_delta": 300,
+      "send_size_sum_delta": 30000,
+      "average_batch_size": 100.0,
+      "metadata_cardinality": 1
+    }
+  },
+  "system": {
+    "collector_cpu_seconds_delta": 1.23,
+    "collector_memory_rss_bytes": 180000000,
+    "collector_runtime_heap_alloc_bytes": 52000000,
+    "collector_runtime_total_sys_memory_bytes": 65000000,
+    "collector_uptime_seconds": 600.0
+  },
+  "status": "PASS",
+  "error_message": null,
+  "limitations": [
+    "Collector queue pressure metrics were not exposed by the baseline collector configuration during this scrape.",
+    "Kafka offsets and collector metrics are reported as deltas across the measurement window. On a clean stack this approximates per-run counts; on a reused stack they remain cumulative counters with per-window deltas."
+  ]
+}

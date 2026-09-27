@@ -219,3 +219,8 @@ __marimo__/
 
 # ORION baseline lab artifacts
 artifacts/
+
+# EXP-001A generated run artifacts
+experiments/exp-001a/results/*
+!experiments/exp-001a/results/.gitkeep
+!experiments/exp-001a/results/result-schema.json
