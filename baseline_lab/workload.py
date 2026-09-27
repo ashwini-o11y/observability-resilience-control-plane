@@ -311,7 +311,7 @@ def run_workload(config: WorkloadConfig) -> WorkloadSummary:
     LAST_RUN_FAILED.set(0)
 
     schedule = build_rate_schedule(config.rate, config.duration_seconds, config.ramp_up_seconds)
-    run_id = datetime.now(tz=UTC).strftime("orion-baseline-%Y%m%d%H%M%S")
+    run_id = datetime.now(tz=UTC).strftime("orion-baseline-%Y%m%d%H%M%S%f")
     LOGGER.info(
         "Starting ORION baseline workload run_id=%s topic=%s duration=%ss target_rates=%s",
         run_id,

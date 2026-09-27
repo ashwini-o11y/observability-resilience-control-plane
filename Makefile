@@ -27,7 +27,7 @@ status:
 	$(COMPOSE) ps
 
 generate:
-	$(COMPOSE) run --rm --service-ports workload \
+	$(COMPOSE) run --rm --build --service-ports workload \
 		--bootstrap-servers kafka:9092 \
 		--topic $(TOPIC) \
 		--rate $(RATE) \
