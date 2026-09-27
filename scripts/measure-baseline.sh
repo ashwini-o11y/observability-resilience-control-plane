@@ -82,9 +82,15 @@ before_receiver="$(metric_sum '^otelcol_receiver_accepted_log_records\\{receiver
 before_debug="$(metric_sum '^otelcol_exporter_sent_log_records\\{exporter=\"debug\"')"
 before_file="$(metric_sum '^otelcol_exporter_sent_log_records\\{exporter=\"file\"')"
 
-run_output="$(make generate RATE="${RATE}" DURATION="${DURATION}" RAMP_UP="${RAMP_UP}" 2>&1)"
+run_output="$(make --no-print-directory generate RATE="${RATE}" DURATION="${DURATION}" RAMP_UP="${RAMP_UP}" 2>&1)"
 printf '%s\n' "${run_output}" > artifacts/workload/latest-generate.log
-summary_json="$(printf '%s\n' "${run_output}" | tail -n 1)"
+summary_json="$(printf '%s\n' "${run_output}" | grep -E '^\{.*\}$' | tail -n 1 || true)"
+if [[ -z "${summary_json}" ]]; then
+  echo "ERROR: unable to parse workload summary JSON from make generate output" >&2
+  echo "--- workload output ---" >&2
+  printf '%s\n' "${run_output}" >&2
+  exit 1
+fi
 printf '%s\n' "${summary_json}" > artifacts/workload/latest-summary.json
 
 mapfile -t summary_fields < <(
