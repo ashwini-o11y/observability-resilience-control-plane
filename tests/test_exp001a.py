@@ -197,6 +197,32 @@ def test_render_report_uses_run_id_as_tiebreaker_for_equal_timestamps() -> None:
     assert "| 10/s | exp001a-10rps-001 | PASS |" not in report
 
 
+def test_render_report_prefers_valid_timestamp_over_invalid_timestamp() -> None:
+    valid_result = {
+        "artifact_type": "exp001a_run_result",
+        "experiment": "EXP-001A",
+        "run_id": "valid",
+        "rate": 10,
+        "start_timestamp": "2026-09-27T11:00:00Z",
+        "status": "PASS",
+        "workload": {"acknowledged_records": 10, "target_records": 10, "achieved_rate": 9.8},
+        "kafka": {"consumer_lag": 0},
+        "otel": {"receiver": {"accepted_records": 10}, "exporter": {"failed_records": {"debug": 0, "file": 0}}},
+        "system": {"collector_memory_rss_bytes": 100_000_000},
+    }
+    invalid_result = {
+        **valid_result,
+        "run_id": "invalid",
+        "start_timestamp": "not-a-timestamp",
+        "_path": "z.json",
+    }
+
+    report = render_report([invalid_result, valid_result])
+
+    assert "| 10/s | valid | PASS |" in report
+    assert "| 10/s | invalid | PASS |" not in report
+
+
 def test_load_result_files_only_reads_results_directory_json(tmp_path) -> None:
     results_dir = tmp_path / "results"
     results_dir.mkdir()

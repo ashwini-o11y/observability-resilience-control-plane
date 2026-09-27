@@ -61,10 +61,10 @@ smoke:
 	./scripts/smoke-test.sh
 
 measure:
-	RATE=$(RATE) DURATION=$(DURATION) RAMP_UP=$(RAMP_UP) RUN_ID='$(RUN_ID)' ./scripts/measure-baseline.sh
+	RATE=$(RATE) DURATION=$(DURATION) RAMP_UP=$(RAMP_UP) RUN_ID=$(RUN_ID) ./scripts/measure-baseline.sh
 
 experiment-001a:
-	RATE=$(RATE) DURATION=$(DURATION) RUN_ID='$(RUN_ID)' ./experiments/exp-001a/run-baseline.sh
+	RATE=$(RATE) DURATION=$(DURATION) RUN_ID=$(RUN_ID) ./experiments/exp-001a/run-baseline.sh
 
 experiment-001a-report:
 	./experiments/exp-001a/analyze-results.py report

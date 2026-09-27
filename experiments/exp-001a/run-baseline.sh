@@ -90,7 +90,11 @@ fi
 
 if (( MEASURE_EXIT != 0 )); then
   STATUS="FAIL"
-  ERROR_MESSAGE="$(tr '\n' ' ' < "${TMP_DIR}/measurement.stderr" | sed 's/[[:space:]][[:space:]]*/ /g')"
+  measurement_error="$(tr '\n' ' ' < "${TMP_DIR}/measurement.stderr" | sed 's/[[:space:]][[:space:]]*/ /g')"
+  if [[ -n "${ERROR_MESSAGE}" ]]; then
+    ERROR_MESSAGE="${ERROR_MESSAGE} "
+  fi
+  ERROR_MESSAGE="${ERROR_MESSAGE}${measurement_error}"
   rm -f "${TMP_DIR}/measurement.json"
 fi
 
