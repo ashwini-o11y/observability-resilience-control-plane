@@ -13,7 +13,6 @@ cleanup() {
   rm -f "${BASELINE_CONFIG}" "${OPTIONAL_CONFIG}"
 }
 trap cleanup EXIT
-chmod 644 "${BASELINE_CONFIG}" "${OPTIONAL_CONFIG}"
 
 require_component() {
   local component_type="$1"
@@ -53,12 +52,14 @@ require_component exporters splunk_hec
 require_component extensions health_check
 
 python3 -m baseline_lab.render_collector_config --output "${BASELINE_CONFIG}" >/dev/null
+chmod 644 "${BASELINE_CONFIG}"
 docker run --rm \
   -v "${BASELINE_CONFIG}:/etc/otelcol-contrib/config.yaml:ro" \
   "${COLLECTOR_IMAGE}" \
   validate --config=/etc/otelcol-contrib/config.yaml
 
 ENABLE_DYNATRACE=true ENABLE_SPLUNK=true python3 -m baseline_lab.render_collector_config --output "${OPTIONAL_CONFIG}" >/dev/null
+chmod 644 "${OPTIONAL_CONFIG}"
 docker run --rm \
   -e DYNATRACE_OTLP_ENDPOINT="https://example.live.dynatrace.com/api/v2/otlp" \
   -e DYNATRACE_API_TOKEN="placeholder-token" \
