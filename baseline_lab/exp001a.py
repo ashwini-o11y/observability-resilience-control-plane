@@ -344,15 +344,21 @@ def _rate_summary_row(result: dict[str, Any] | None) -> str:
 
 
 def render_report(results: list[dict[str, Any]]) -> str:
-    def sort_key(item: dict[str, Any]) -> tuple[int, float, str]:
+    def sort_key(item: dict[str, Any]) -> tuple[int, float, str, str]:
+        run_id = str(item.get("run_id", ""))
         start_timestamp = item.get("start_timestamp")
         if isinstance(start_timestamp, str):
             normalized = start_timestamp.replace("Z", "+00:00")
             try:
-                return (1, datetime.fromisoformat(normalized).timestamp(), str(item.get("_path", "")))
+                return (
+                    1,
+                    datetime.fromisoformat(normalized).timestamp(),
+                    run_id,
+                    str(item.get("_path", "")),
+                )
             except ValueError:
                 pass
-        return (0, 0.0, str(item.get("_path", "")))
+        return (0, 0.0, run_id, str(item.get("_path", "")))
 
     latest_by_rate: dict[int, dict[str, Any]] = {}
     for result in sorted(results, key=sort_key):
