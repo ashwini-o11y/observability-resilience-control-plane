@@ -34,6 +34,14 @@ EVENTS_FAILED = Counter(
     "orion_workload_events_failed_total",
     "Number of workload events that failed to publish to Kafka.",
 )
+LAST_RUN_ACKNOWLEDGED = Gauge(
+    "orion_workload_last_run_acknowledged_events",
+    "Number of events acknowledged during the most recent workload run.",
+)
+LAST_RUN_FAILED = Gauge(
+    "orion_workload_last_run_failed_events",
+    "Number of events that failed during the most recent workload run.",
+)
 TARGET_RATE = Gauge(
     "orion_workload_target_rate_events_per_second",
     "Configured event rate for the current second.",
@@ -276,7 +284,10 @@ def _run_window(
         producer.poll(0)
         sequence_number += 1
 
-    producer.flush(timeout=max(10, math.ceil(current_rate / 500)))
+    remaining = producer.flush(timeout=max(10, math.ceil(current_rate / 500)))
+    if remaining:
+        LOGGER.error("%s messages remained queued after flush timeout", remaining)
+        failed += remaining
     return acknowledged, failed
 
 
@@ -289,6 +300,8 @@ def run_workload(config: WorkloadConfig) -> WorkloadSummary:
     if config.metrics_port:
         start_http_server(config.metrics_port)
         LOGGER.info("Started workload metrics endpoint on :%s", config.metrics_port)
+    LAST_RUN_ACKNOWLEDGED.set(0)
+    LAST_RUN_FAILED.set(0)
 
     schedule = build_rate_schedule(config.rate, config.duration_seconds, config.ramp_up_seconds)
     run_id = datetime.now(tz=UTC).strftime("orion-baseline-%Y%m%d%H%M%S")
@@ -341,6 +354,8 @@ def run_workload(config: WorkloadConfig) -> WorkloadSummary:
 
     elapsed = time.perf_counter() - started_at
     LAST_RUN_DURATION.set(elapsed)
+    LAST_RUN_ACKNOWLEDGED.set(acknowledged)
+    LAST_RUN_FAILED.set(failed)
     summary = WorkloadSummary(
         run_id=run_id,
         target_events=sum(schedule),

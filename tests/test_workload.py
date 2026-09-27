@@ -1,3 +1,5 @@
+import pytest
+
 from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import ExportLogsServiceRequest
 
 from baseline_lab.workload import WorkloadConfig, build_log_request, build_rate_schedule
@@ -16,12 +18,31 @@ def test_build_rate_schedule_with_ramp_up() -> None:
 def test_workload_config_rejects_invalid_ramp_up() -> None:
     config = WorkloadConfig(rate=100, duration_seconds=10, ramp_up_seconds=10)
 
-    try:
+    with pytest.raises(ValueError, match="ramp_up_seconds"):
         config.validate()
-    except ValueError as exc:
-        assert "ramp_up_seconds" in str(exc)
-    else:  # pragma: no cover - defensive assertion
-        raise AssertionError("expected ValueError for invalid ramp-up")
+
+
+@pytest.mark.parametrize(
+    ("rate", "duration_seconds", "ramp_up_seconds", "expected_message"),
+    [
+        (0, 10, 0, "rate"),
+        (10, 0, 0, "duration_seconds"),
+        (10, 10, -1, "ramp_up_seconds"),
+        (10, 10, 10, "ramp_up_seconds"),
+    ],
+)
+def test_build_rate_schedule_rejects_invalid_arguments(
+    rate: int,
+    duration_seconds: int,
+    ramp_up_seconds: int,
+    expected_message: str,
+) -> None:
+    with pytest.raises(ValueError, match=expected_message):
+        build_rate_schedule(
+            rate=rate,
+            duration_seconds=duration_seconds,
+            ramp_up_seconds=ramp_up_seconds,
+        )
 
 
 def test_build_log_request_contains_required_schema_fields() -> None:

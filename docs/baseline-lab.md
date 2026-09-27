@@ -86,8 +86,10 @@ curl http://localhost:9102/metrics
 
 Useful machine-readable workload metrics include:
 
-- `orion_workload_events_sent_total`
-- `orion_workload_events_failed_total`
+- `orion_workload_events_sent_total` (process lifetime counter)
+- `orion_workload_events_failed_total` (process lifetime counter)
+- `orion_workload_last_run_acknowledged_events`
+- `orion_workload_last_run_failed_events`
 - `orion_workload_target_rate_events_per_second`
 - `orion_workload_actual_rate_events_per_second`
 - `orion_workload_last_run_duration_seconds`
