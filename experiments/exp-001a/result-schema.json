@@ -1,4 +1,5 @@
 {
+  "artifact_type": "exp001a_run_result",
   "experiment": "EXP-001A",
   "run_id": "exp001a-100rps-001",
   "rate": 100,

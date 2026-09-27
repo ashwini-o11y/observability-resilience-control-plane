@@ -106,6 +106,7 @@ def test_build_result_and_render_report_use_available_rates_only() -> None:
         )
     )
 
+    assert result["artifact_type"] == "exp001a_run_result"
     assert result["otel"]["batch"]["average_batch_size"] == 10
     assert result["system"]["collector_cpu_seconds_delta"] == 0.5
     assert result["limitations"] == ["queue unavailable", "window deltas only"]
@@ -122,7 +123,13 @@ def test_load_result_files_only_reads_results_directory_json(tmp_path) -> None:
     results_dir = tmp_path / "results"
     results_dir.mkdir()
     (results_dir / "exp001a-10rps-001.json").write_text(
-        json.dumps({"experiment": "EXP-001A", "run_id": "exp001a-10rps-001"}),
+        json.dumps(
+            {
+                "artifact_type": "exp001a_run_result",
+                "experiment": "EXP-001A",
+                "run_id": "exp001a-10rps-001",
+            }
+        ),
         encoding="utf-8",
     )
     (tmp_path / "result-schema.json").write_text(

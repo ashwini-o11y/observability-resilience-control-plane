@@ -55,6 +55,7 @@ PY
 START_TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 collect_environment > "${TMP_DIR}/environment.json"
 
+make clean >/dev/null
 make start
 COLLECTED_AT="${START_TIMESTAMP}" "${ROOT_DIR}/experiments/exp-001a/collect-metrics.sh" > "${TMP_DIR}/before.json"
 

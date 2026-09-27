@@ -47,7 +47,7 @@ make experiment-001a RATE=1000 DURATION=300 RUN_ID=exp001a-1000rps-001
 
 The run command:
 
-1. ensures the baseline stack is started
+1. resets previous local baseline state with `make clean` and starts a fresh stack
 2. records environment metadata and timestamps
 3. scrapes collector metrics before and after the run
 4. reuses `scripts/measure-baseline.sh` to verify Workload → Kafka → OTel → Exporter

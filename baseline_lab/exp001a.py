@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -191,6 +192,7 @@ def build_result(payload: ResultBuildInput) -> dict[str, Any]:
         limitations.append(str(measurement["accounting_note"]))
 
     return {
+        "artifact_type": "exp001a_run_result",
         "experiment": payload.experiment,
         "run_id": payload.run_id,
         "rate": payload.rate,
@@ -265,6 +267,8 @@ def load_result_files(results_dir: Path) -> list[dict[str, Any]]:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             continue
+        if payload.get("artifact_type") != "exp001a_run_result":
+            continue
         if payload.get("experiment") != "EXP-001A" or "run_id" not in payload:
             continue
         payload["_path"] = str(path)
@@ -313,8 +317,18 @@ def _rate_summary_row(result: dict[str, Any] | None) -> str:
 
 
 def render_report(results: list[dict[str, Any]]) -> str:
+    def sort_key(item: dict[str, Any]) -> tuple[int, float, str]:
+        start_timestamp = item.get("start_timestamp")
+        if isinstance(start_timestamp, str):
+            normalized = start_timestamp.replace("Z", "+00:00")
+            try:
+                return (1, datetime.fromisoformat(normalized).timestamp(), str(item.get("_path", "")))
+            except ValueError:
+                pass
+        return (0, 0.0, str(item.get("_path", "")))
+
     latest_by_rate: dict[int, dict[str, Any]] = {}
-    for result in sorted(results, key=lambda item: item.get("start_timestamp", "")):
+    for result in sorted(results, key=sort_key):
         rate = result.get("rate")
         if isinstance(rate, int):
             latest_by_rate[rate] = result
