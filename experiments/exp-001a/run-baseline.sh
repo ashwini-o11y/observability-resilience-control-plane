@@ -73,8 +73,8 @@ if (( MEASURE_EXIT != 0 )); then
 fi
 
 RESULT_PATH="${RESULTS_DIR}/${RUN_ID}.json"
+ANALYZE_SCRIPT="${ROOT_DIR}/experiments/exp-001a/analyze-results.py"
 build_args=(
-  "${ROOT_DIR}/experiments/exp-001a/analyze-results.py"
   build
   --experiment "${EXPERIMENT}"
   --run-id "${RUN_ID}"
@@ -94,9 +94,9 @@ fi
 if [[ -n "${ERROR_MESSAGE}" ]]; then
   build_args+=(--error-message "${ERROR_MESSAGE}")
 fi
-python3 "${build_args[@]}"
+python3 "${ANALYZE_SCRIPT}" "${build_args[@]}"
 
-python3 "${ROOT_DIR}/experiments/exp-001a/analyze-results.py" report --results-dir "${RESULTS_DIR}" --output "${REPORT_OUTPUT}"
+python3 "${ANALYZE_SCRIPT}" report --results-dir "${RESULTS_DIR}" --output "${REPORT_OUTPUT}"
 
 echo "EXP-001A result: ${RESULT_PATH}"
 echo "EXP-001A report: ${REPORT_OUTPUT}"

@@ -58,7 +58,7 @@ The run command:
 
 - Per-run JSON: `experiments/exp-001a/results/<RUN_ID>.json`
 - Latest generated report: `experiments/exp-001a/results/latest-report.md`
-- Checked-in schema/template: `experiments/exp-001a/results/result-schema.json`
+- Checked-in schema/template: `experiments/exp-001a/result-schema.json`
 - Baseline artifacts reused during the run: `artifacts/collector/`, `artifacts/measurements/`, `artifacts/workload/`
 
 Run-specific result JSON and generated reports are ignored by Git so they do not accidentally become commits.

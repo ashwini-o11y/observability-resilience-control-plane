@@ -1,13 +1,9 @@
-from baseline_lab.cli import build_parser
 import json
+from pathlib import Path
 
-from baseline_lab.exp001a import (
-    ResultBuildInput,
-    build_result,
-    collect_metric_snapshot,
-    load_result_files,
-    render_report,
-)
+from baseline_lab.cli import build_parser
+
+from baseline_lab.exp001a import ResultBuildInput, build_result, collect_metric_snapshot, load_result_files, render_report
 
 
 def test_workload_cli_accepts_operator_run_id() -> None:
@@ -122,16 +118,18 @@ def test_build_result_and_render_report_use_available_rates_only() -> None:
     assert "not as a universal system capacity claim" in report
 
 
-def test_load_result_files_ignores_checked_in_schema(tmp_path) -> None:
+def test_load_result_files_only_reads_results_directory_json(tmp_path) -> None:
+    results_dir = tmp_path / "results"
+    results_dir.mkdir()
+    (results_dir / "exp001a-10rps-001.json").write_text(
+        json.dumps({"experiment": "EXP-001A", "run_id": "exp001a-10rps-001"}),
+        encoding="utf-8",
+    )
     (tmp_path / "result-schema.json").write_text(
         json.dumps({"experiment": "EXP-001A", "run_id": "schema"}),
         encoding="utf-8",
     )
-    (tmp_path / "exp001a-10rps-001.json").write_text(
-        json.dumps({"experiment": "EXP-001A", "run_id": "exp001a-10rps-001"}),
-        encoding="utf-8",
-    )
 
-    results = load_result_files(tmp_path)
+    results = load_result_files(Path(results_dir))
 
     assert [result["run_id"] for result in results] == ["exp001a-10rps-001"]

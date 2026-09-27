@@ -261,8 +261,6 @@ def build_result(payload: ResultBuildInput) -> dict[str, Any]:
 def load_result_files(results_dir: Path) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     for path in sorted(results_dir.glob("*.json")):
-        if path.name == "result-schema.json":
-            continue
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
