@@ -85,7 +85,7 @@ make logs
 ## Health checks and deterministic startup
 
 - Kafka uses a container health check based on `kafka-topics --bootstrap-server kafka:9092 --list`
-- the collector uses the built-in `otelcol-contrib validate --config=...` command for container health plus an HTTP health endpoint on `http://localhost:13133`
+- the collector image is a minimal wrapper around `otel/opentelemetry-collector-contrib:0.111.0` that adds BusyBox only for the Docker health probe, and its container health check calls `http://localhost:13133`
 - `make start` and the smoke test both call `scripts/wait-for-baseline.sh` so startup waits on actual readiness instead of fixed sleeps
 - the workload service depends on `kafka-init`, which depends on Kafka health, so the generator does not start before the topic exists
 

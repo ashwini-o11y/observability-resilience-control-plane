@@ -251,15 +251,15 @@ def _run_window(
     sequence_number = start_sequence
     enqueued = 0
     acknowledged = 0
-    failed = 0
+    failed_callbacks = 0
 
     def delivery_report(err, _msg) -> None:
-        nonlocal acknowledged, failed
+        nonlocal acknowledged, failed_callbacks
         if err is None:
             acknowledged += 1
             return
         LOGGER.error("Kafka send failed: %s", err)
-        failed += 1
+        failed_callbacks += 1
 
     for _ in range(current_rate):
         emitted_at_ns = time.time_ns()
@@ -287,14 +287,14 @@ def _run_window(
         sequence_number += 1
 
     remaining = producer.flush(timeout=max(10, math.ceil(current_rate / 500)))
-    unresolved = max(0, enqueued - acknowledged - failed)
+    failed = max(0, enqueued - acknowledged)
+    unresolved = max(0, failed - failed_callbacks)
     if remaining or unresolved:
         LOGGER.error(
             "%s messages remained unresolved after flush (reported queued=%s)",
             unresolved,
             remaining,
         )
-        failed += unresolved
     return acknowledged, failed
 
 

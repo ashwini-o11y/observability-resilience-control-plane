@@ -43,7 +43,10 @@ services:
       - ./scripts:/scripts:ro
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.111.0
+    image: orion-baseline-collector:0.111.0
+    build:
+      context: .
+      dockerfile: docker/collector/Dockerfile
     container_name: orion-baseline-collector
     user: "0:0"
     environment:
@@ -59,7 +62,7 @@ services:
         condition: service_completed_successfully
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     healthcheck:
-      test: ["CMD", "/otelcol-contrib", "validate", "--config=/etc/otelcol-contrib/config.yaml"]
+      test: ["CMD", "/busybox", "wget", "-qO-", "http://localhost:13133"]
       interval: 15s
       timeout: 10s
       retries: 5
