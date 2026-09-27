@@ -21,6 +21,21 @@ trap cleanup EXIT
 
 mkdir -p "${RESULTS_DIR}"
 
+collect_snapshot_with_retry() {
+  local collected_at="$1"
+  local output_path="$2"
+  local attempts="${3:-10}"
+
+  for (( attempt=1; attempt<=attempts; attempt++ )); do
+    if COLLECTED_AT="${collected_at}" "${ROOT_DIR}/experiments/exp-001a/collect-metrics.sh" > "${output_path}"; then
+      return 0
+    fi
+    sleep 2
+  done
+
+  return 1
+}
+
 collect_environment() {
   python3 - <<'PY'
 import json
@@ -57,7 +72,7 @@ collect_environment > "${TMP_DIR}/environment.json"
 
 make clean >/dev/null
 make start
-COLLECTED_AT="${START_TIMESTAMP}" "${ROOT_DIR}/experiments/exp-001a/collect-metrics.sh" > "${TMP_DIR}/before.json"
+collect_snapshot_with_retry "${START_TIMESTAMP}" "${TMP_DIR}/before.json"
 
 set +e
 RATE="${RATE}" DURATION="${DURATION}" RUN_ID="${RUN_ID}" ./scripts/measure-baseline.sh > "${TMP_DIR}/measurement.json" 2> "${TMP_DIR}/measurement.stderr"
@@ -65,7 +80,7 @@ MEASURE_EXIT=$?
 set -e
 
 END_TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-COLLECTED_AT="${END_TIMESTAMP}" "${ROOT_DIR}/experiments/exp-001a/collect-metrics.sh" > "${TMP_DIR}/after.json" || true
+collect_snapshot_with_retry "${END_TIMESTAMP}" "${TMP_DIR}/after.json" 3 || true
 
 if (( MEASURE_EXIT != 0 )); then
   STATUS="FAIL"

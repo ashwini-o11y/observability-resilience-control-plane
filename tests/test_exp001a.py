@@ -147,6 +147,32 @@ def test_render_report_uses_latest_timestamp_for_same_rate() -> None:
     assert "| 10/s | older | PASS |" not in report
 
 
+def test_render_report_falls_back_to_path_order_for_invalid_timestamps() -> None:
+    first_result = {
+        "artifact_type": "exp001a_run_result",
+        "experiment": "EXP-001A",
+        "run_id": "first",
+        "rate": 10,
+        "start_timestamp": "not-a-timestamp",
+        "_path": "a.json",
+        "status": "PASS",
+        "workload": {"acknowledged_records": 10, "target_records": 10, "achieved_rate": 9.8},
+        "kafka": {"consumer_lag": 0},
+        "otel": {"receiver": {"accepted_records": 10}, "exporter": {"failed_records": {"debug": 0, "file": 0}}},
+        "system": {"collector_memory_rss_bytes": 100_000_000},
+    }
+    second_result = {
+        **first_result,
+        "run_id": "second",
+        "_path": "b.json",
+    }
+
+    report = render_report([second_result, first_result])
+
+    assert "| 10/s | second | PASS |" in report
+    assert "| 10/s | first | PASS |" not in report
+
+
 def test_load_result_files_only_reads_results_directory_json(tmp_path) -> None:
     results_dir = tmp_path / "results"
     results_dir.mkdir()

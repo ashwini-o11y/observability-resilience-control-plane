@@ -106,7 +106,9 @@ def collect_metric_snapshot(metrics_text: str, *, collected_at: str) -> dict[str
         ("debug", "file"),
     )
     limitations: list[str] = []
-    if all(value is None for value in queue_size.values()) or all(value is None for value in queue_capacity.values()):
+    if all(value is None for value in queue_size.values()) and all(
+        value is None for value in queue_capacity.values()
+    ):
         limitations.append(
             "Collector queue pressure metrics were not exposed by the baseline collector configuration during this scrape."
         )
