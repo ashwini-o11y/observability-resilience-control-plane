@@ -186,7 +186,7 @@ def build_result(payload: ResultBuildInput) -> dict[str, Any]:
     if batch_send_size_count_delta not in (None, 0) and batch_send_size_sum_delta is not None:
         average_batch_size = batch_send_size_sum_delta / batch_send_size_count_delta
 
-    limitations = list(before_snapshot.get("limitations", [])) + list(after_snapshot.get("limitations", []))
+    limitations = list(after_snapshot.get("limitations") or before_snapshot.get("limitations", []))
     if measurement.get("accounting_note"):
         limitations.append(str(measurement["accounting_note"]))
 

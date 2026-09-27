@@ -83,12 +83,14 @@ build_args=(
   --start-timestamp "${START_TIMESTAMP}"
   --end-timestamp "${END_TIMESTAMP}"
   --environment "${TMP_DIR}/environment.json"
-  --measurement "${TMP_DIR}/measurement.json"
   --before-snapshot "${TMP_DIR}/before.json"
   --after-snapshot "${TMP_DIR}/after.json"
   --status "${STATUS}"
   --output "${RESULT_PATH}"
 )
+if [[ -f "${TMP_DIR}/measurement.json" ]]; then
+  build_args+=(--measurement "${TMP_DIR}/measurement.json")
+fi
 if [[ -n "${ERROR_MESSAGE}" ]]; then
   build_args+=(--error-message "${ERROR_MESSAGE}")
 fi

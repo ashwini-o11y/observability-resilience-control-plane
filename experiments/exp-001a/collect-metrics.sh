@@ -9,14 +9,14 @@ METRICS_ENDPOINT="${METRICS_ENDPOINT:-http://localhost:8888/metrics}"
 
 metrics_text="$(curl -fsS "${METRICS_ENDPOINT}")"
 
-python3 - <<'PY' "${COLLECTED_AT}" "${metrics_text}"
+printf '%s' "${metrics_text}" | python3 - <<'PY' "${COLLECTED_AT}"
 import json
 import sys
 
 from baseline_lab.exp001a import collect_metric_snapshot
 
 collected_at = sys.argv[1]
-metrics_text = sys.argv[2]
+metrics_text = sys.stdin.read()
 
 print(json.dumps(collect_metric_snapshot(metrics_text, collected_at=collected_at), indent=2, sort_keys=True))
 PY
