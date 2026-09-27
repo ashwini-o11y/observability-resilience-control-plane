@@ -96,7 +96,7 @@ if [[ -n "${ERROR_MESSAGE}" ]]; then
 fi
 python3 "${build_args[@]}"
 
-python3 "${ROOT_DIR}/experiments/exp-001a/analyze-results.py" report --output "${REPORT_OUTPUT}"
+python3 "${ROOT_DIR}/experiments/exp-001a/analyze-results.py" report --results-dir "${RESULTS_DIR}" --output "${REPORT_OUTPUT}"
 
 echo "EXP-001A result: ${RESULT_PATH}"
 echo "EXP-001A report: ${REPORT_OUTPUT}"

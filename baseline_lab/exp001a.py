@@ -254,7 +254,7 @@ def build_result(payload: ResultBuildInput) -> dict[str, Any]:
         },
         "status": payload.status,
         "error_message": payload.error_message,
-        "limitations": sorted(dict.fromkeys(limitations)),
+        "limitations": list(dict.fromkeys(limitations)),
     }
 
 
