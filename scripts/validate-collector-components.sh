@@ -6,6 +6,14 @@ cd "${ROOT_DIR}"
 
 COLLECTOR_IMAGE="${COLLECTOR_IMAGE:-otel/opentelemetry-collector-contrib:0.111.0}"
 COMPONENTS_OUTPUT="$(docker run --rm "${COLLECTOR_IMAGE}" components)"
+BASELINE_CONFIG="$(mktemp)"
+OPTIONAL_CONFIG="$(mktemp)"
+
+cleanup() {
+  rm -f "${BASELINE_CONFIG}" "${OPTIONAL_CONFIG}"
+}
+trap cleanup EXIT
+chmod 644 "${BASELINE_CONFIG}" "${OPTIONAL_CONFIG}"
 
 require_component() {
   local component_type="$1"
@@ -44,20 +52,20 @@ require_component exporters otlphttp
 require_component exporters splunk_hec
 require_component extensions health_check
 
-python3 -m baseline_lab.render_collector_config --output collector/collector.generated.yaml >/dev/null
+python3 -m baseline_lab.render_collector_config --output "${BASELINE_CONFIG}" >/dev/null
 docker run --rm \
-  -v "${PWD}/collector/collector.generated.yaml:/etc/otelcol-contrib/config.yaml:ro" \
+  -v "${BASELINE_CONFIG}:/etc/otelcol-contrib/config.yaml:ro" \
   "${COLLECTOR_IMAGE}" \
   validate --config=/etc/otelcol-contrib/config.yaml
 
-ENABLE_DYNATRACE=true ENABLE_SPLUNK=true python3 -m baseline_lab.render_collector_config --output /tmp/orion-collector-optional.yaml >/dev/null
+ENABLE_DYNATRACE=true ENABLE_SPLUNK=true python3 -m baseline_lab.render_collector_config --output "${OPTIONAL_CONFIG}" >/dev/null
 docker run --rm \
   -e DYNATRACE_OTLP_ENDPOINT="https://example.live.dynatrace.com/api/v2/otlp" \
   -e DYNATRACE_API_TOKEN="placeholder-token" \
   -e SPLUNK_HEC_ENDPOINT="https://splunk.example.com:8088/services/collector" \
   -e SPLUNK_HEC_TOKEN="placeholder-token" \
   -e SPLUNK_HEC_INDEX="main" \
-  -v "/tmp/orion-collector-optional.yaml:/etc/otelcol-contrib/config.yaml:ro" \
+  -v "${OPTIONAL_CONFIG}:/etc/otelcol-contrib/config.yaml:ro" \
   "${COLLECTOR_IMAGE}" \
   validate --config=/etc/otelcol-contrib/config.yaml
 
